@@ -1,101 +1,163 @@
-import Image from "next/image";
+import { supabase } from "@/lib/supabase";
+import type { Film, SiteContent } from "@/lib/supabase";
+import SiteNav from "./components/SiteNav";
+import FilmGrain from "./components/FilmGrain";
+import FilmGrid from "./components/FilmGrid";
+import ScrollReveal from "./components/ScrollReveal";
 
-export default function Home() {
+async function getFilms(): Promise<Film[]> {
+  const { data } = await supabase
+    .from("films")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  return data ?? [];
+}
+
+async function getContent(): Promise<Record<string, string>> {
+  const { data } = await supabase.from("site_content").select("*");
+  const map: Record<string, string> = {};
+  (data as SiteContent[] ?? []).forEach((r) => { map[r.key] = r.value; });
+  return map;
+}
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [films, content] = await Promise.all([getFilms(), getContent()]);
+
+  const siteName   = content.site_name   ?? "MotionXI";
+  const eyebrow    = content.eyebrow     ?? "Film Production — Scottsdale, AZ";
+  const tagline    = content.tagline     ?? "An independent production company crafting films that live at the intersection of image and feeling.";
+  const bio        = content.bio         ?? "";
+  const bioClosing = content.bio_closing ?? "Our films are less about what is seen and more about what is felt.";
+  const aboutImage = content.about_image ?? null;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <>
+      <SiteNav />
+      <main>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+        {/* HERO */}
+        <section id="hero" aria-label="Introduction">
+          <div className="hero">
+            <FilmGrain />
+            <div className="container hero__inner">
+              <p className="t-eyebrow hero__eyebrow anim-1" style={{ marginBottom: "1.75rem" }}>{eyebrow}</p>
+              <h1 className="t-hero anim-2" style={{ marginBottom: "1.5rem" }}>
+                {siteName.replace("XI", "")}<em>{siteName.includes("XI") ? "XI" : ""}</em>
+              </h1>
+              <p className="t-body anim-3" style={{ maxWidth: "38ch", marginBottom: "1.5rem" }}>{tagline}</p>
+              <div className="hero__rule anim-4" aria-hidden="true" />
+              <button
+                className="hero__scroll anim-5"
+                onClick={() => document.getElementById("films")?.scrollIntoView({ behavior: "smooth" })}
+                aria-label="Scroll to films"
+              >
+                <div className="hero__scroll-line" aria-hidden="true" />
+                <span className="hero__scroll-label">Scroll</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* FILMS */}
+        <section id="films" className="section" aria-label="Film catalog">
+          <div className="container">
+            <ScrollReveal>
+              <div className="section-header">
+                <span className="section-header__num">01</span>
+                <h2 className="t-section-title">Selected Films</h2>
+                <div className="section-header__line" aria-hidden="true" />
+              </div>
+            </ScrollReveal>
+            <FilmGrid films={films} />
+          </div>
+        </section>
+
+        <hr style={{ border: "none", borderTop: "1px solid var(--c-border)" }} />
+
+        {/* ABOUT */}
+        <section id="about" className="section" aria-label="About MotionXI">
+          <div className="container">
+            <ScrollReveal>
+              <div className="section-header">
+                <span className="section-header__num">02</span>
+                <h2 className="t-section-title">The Company</h2>
+                <div className="section-header__line" aria-hidden="true" />
+              </div>
+            </ScrollReveal>
+            <div className="about__layout">
+              <ScrollReveal>
+                <div className="about__portrait" aria-label="Company visual">
+                  <div className="about__portrait-inner">
+                    {aboutImage ? (
+                      <img src={aboutImage} alt="MotionXI" style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} />
+                    ) : (
+                      <span className="about__portrait-ghost">MotionXI</span>
+                    )}
+                  </div>
+                </div>
+              </ScrollReveal>
+              <ScrollReveal delay={0.1}>
+                <div className="about__pullquote">
+                  <p className="t-pullquote">Intimate, deliberate,<br />visually considered.</p>
+                </div>
+                <p className="t-body about__bio"><strong style={{ color: "var(--c-text)", fontWeight: 500 }}>MotionXI</strong> {bio.replace(/^MotionXI\s+is/, "is")}</p>
+                <p className="t-body about__bio">Our work is intimate, deliberate, and visually considered — built on the belief that cinema&apos;s power lies not in spectacle, but in presence.</p>
+                <p className="about__closing">{bioClosing}</p>
+              </ScrollReveal>
+            </div>
+          </div>
+        </section>
+
+        <hr style={{ border: "none", borderTop: "1px solid var(--c-border)" }} />
+
+        {/* CONTACT */}
+        <section id="contact" className="section" aria-label="Contact">
+          <div className="container">
+            <ScrollReveal>
+              <div className="section-header">
+                <span className="section-header__num">03</span>
+                <h2 className="t-section-title">Get in Touch</h2>
+                <div className="section-header__line" aria-hidden="true" />
+              </div>
+            </ScrollReveal>
+            <div className="contact__layout">
+              <ScrollReveal>
+                <p className="t-body" style={{ marginBottom: "1.5rem" }}>For collaboration, festival enquiries, distribution rights, or press — get in touch with the MotionXI team.</p>
+                <ul style={{ listStyle: "none" }}>
+                  <li><span className="contact__link"><span className="contact__link-type">Email</span>Adefilmproductions@gmail.com</span></li>
+                  <li><span className="contact__link"><span className="contact__link-type">Instagram</span>@ICUPfr</span></li>
+                </ul>
+              </ScrollReveal>
+              <ScrollReveal delay={0.1}>
+                <form className="contact__form" onSubmit={(e) => e.preventDefault()} noValidate>
+                  <div className="form__field">
+                    <label className="form__label" htmlFor="f-name">Name</label>
+                    <input className="form__input" type="text" id="f-name" placeholder="Your name" autoComplete="name" />
+                  </div>
+                  <div className="form__field">
+                    <label className="form__label" htmlFor="f-email">Email</label>
+                    <input className="form__input" type="email" id="f-email" placeholder="your@email.com" autoComplete="email" />
+                  </div>
+                  <div className="form__field">
+                    <label className="form__label" htmlFor="f-msg">Message</label>
+                    <textarea className="form__input" id="f-msg" placeholder="Tell us about your enquiry..." />
+                  </div>
+                  <button type="submit" className="form__submit">Send Message</button>
+                </form>
+              </ScrollReveal>
+            </div>
+          </div>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      <footer className="footer">
+        <div className="container footer__inner">
+          <p className="t-meta">© 2024 MotionXI. All rights reserved.</p>
+          <p className="t-meta">Film Production · Scottsdale, AZ</p>
+        </div>
       </footer>
-    </div>
+    </>
   );
 }
